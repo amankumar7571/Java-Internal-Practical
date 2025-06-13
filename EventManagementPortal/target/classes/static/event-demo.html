@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Management Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        form, table { margin-bottom: 2em; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Event Management Demo</h1>
+    <form id="eventForm">
+        <label>Name: <input type="text" name="name" required></label><br><br>
+        <label>Date: <input type="date" name="date" required></label><br><br>
+        <label>Venue: <input type="text" name="venue" required></label><br><br>
+        <label>Description: <input type="text" name="description" required></label><br><br>
+        <button type="submit">Add Event</button>
+        <span id="formMsg"></span>
+    </form>
+    <button id="fetchEventsBtn">Fetch All Events</button>
+    <table id="eventsTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Venue</th>
+                <th>Description</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        const apiBase = '';
+        document.getElementById('eventForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                name: form.name.value,
+                date: form.date.value,
+                venue: form.venue.value,
+                description: form.description.value
+            };
+            try {
+                const res = await fetch(apiBase + '/event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    document.getElementById('formMsg').textContent = 'Event added!';
+                    document.getElementById('formMsg').className = 'success';
+                    form.reset();
+                } else {
+                    throw new Error('Failed to add event');
+                }
+            } catch (err) {
+                document.getElementById('formMsg').textContent = err.message;
+                document.getElementById('formMsg').className = 'error';
+            }
+        };
+        document.getElementById('fetchEventsBtn').onclick = async function() {
+            try {
+                const res = await fetch(apiBase + '/events');
+                if (!res.ok) throw new Error('Failed to fetch events');
+                const events = await res.json();
+                const table = document.getElementById('eventsTable');
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                events.forEach(ev => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${ev.id}</td><td>${ev.name}</td><td>${ev.date}</td><td>${ev.venue}</td><td>${ev.description}</td><td><button onclick="deleteEvent(${ev.id}, this)">Delete</button></td>`;
+                    tbody.appendChild(tr);
+                });
+                table.style.display = events.length ? '' : 'none';
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+        async function deleteEvent(id, btn) {
+            if (!confirm('Are you sure you want to delete this event?')) return;
+            try {
+                const res = await fetch(apiBase + '/event/' + id, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete event');
+                // Remove row from table
+                btn.closest('tr').remove();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+    </script>
+</body>
+</html>
